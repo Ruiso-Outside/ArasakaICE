@@ -16,9 +16,9 @@ const VERDICT = {
 const S = { tab: "home", st: null, filter: "all", openIds: new Set(), defBusy: null };
 
 // ---------------------------------------------------------------- avisos e janelas
-function toast(text, kind = "") { const el = document.createElement("div"); el.className = "toast " + kind; el.textContent = text; $("#toasts").appendChild(el); setTimeout(() => el.remove(), 5000); }
+function toast(text, kind = "") { const el = document.createElement("div"); el.className = "toast " + kind; el.textContent = lx(text); $("#toasts").appendChild(el); setTimeout(() => el.remove(), 5000); }
 const modal = $("#modal"), box = $("#modalBox");
-const openModal = (html, cls = "") => { box.className = "modal-box " + cls; box.innerHTML = html; modal.hidden = false; };
+const openModal = (html, cls = "") => { box.className = "modal-box " + cls; box.innerHTML = lx(html); modal.hidden = false; };
 const closeModal = () => { modal.hidden = true; box.innerHTML = ""; };
 modal.addEventListener("mousedown", (e) => { if (e.target === modal) closeModal(); });
 const confirmBox = (title, html, yes = "Continuar", danger = false) => new Promise((resolve) => {
@@ -27,14 +27,28 @@ const confirmBox = (title, html, yes = "Continuar", danger = false) => new Promi
   box.querySelector("[data-n]").onclick = () => { closeModal(); resolve(false); };
 });
 const guard = (fn) => async (...a) => { try { return await fn(...a); } catch (e) { busy(null); toast(e.message, "err"); } };
+// Linux (só em português): troca as frases do Windows pelas do Linux antes de mostrar
+const LINUX = /Linux/.test(navigator.userAgent);
+const LX_TEXT = [
+  ["Antivírus (Microsoft Defender)", "Antivírus (ClamAV, opcional)"], ["Segurança do Windows", "Privacidade e segurança"], ["Proteção do Windows", "Proteção do sistema"],
+  ["Procurando programas disfarçados de Windows...", "Procurando programas rodando de pastas temporárias..."],
+  ["Se o Windows pedir permissão, clique em Sim.", "Digite a sua senha quando o sistema pedir."],
+  ["O Windows vai pedir permissão de administrador uma vez.", "O sistema vai pedir a sua senha uma vez."],
+  ["(o Windows pede permissão de administrador)", "(o sistema pede a sua senha)"],
+  ["O Windows vai pedir permissão de administrador", "O sistema vai pedir a sua senha"],
+  ["reinstale o Windows</b> (Configurações › Sistema › Recuperação › Restaurar o PC)", "reinstale o sistema</b> (pelo pendrive de instalação)"],
+  ["Uma notificação do Windows", "Uma notificação"],
+  [/\bcom o Windows\b/g, "sozinho"], [/\bdo Windows\b/g, "do sistema"], [/\bO Windows\b/g, "O sistema"], [/\bo Windows\b/g, "o sistema"],
+];
+const lx = (html) => (LINUX ? LX_TEXT.reduce((t, [a, b]) => (typeof a === "string" ? t.split(a).join(b) : t.replace(a, b)), String(html)) : html);
 const HINTS = ["Olhando o que abre com o Windows...", "Conferindo as tarefas agendadas e os serviços...", "Procurando programas disfarçados de Windows...", "Verificando antivírus, firewall e atualizações...", "Conferindo o arquivo hosts, o proxy e o DNS...", "Olhando as contas de usuário...", "Procurando programas de acesso remoto..."];
 let hintT = 0;
 function busy(title, text) {
   $("#busy").hidden = !title; clearInterval(hintT);
   if (!title) return;
-  $("#busyTitle").textContent = title;
-  if (text) { $("#busyText").textContent = text; return; }
-  let i = 0; $("#busyText").textContent = HINTS[0]; hintT = setInterval(() => ($("#busyText").textContent = HINTS[++i % HINTS.length]), 1600);
+  $("#busyTitle").textContent = lx(title);
+  if (text) { $("#busyText").textContent = lx(text); return; }
+  let i = 0; $("#busyText").textContent = lx(HINTS[0]); hintT = setInterval(() => ($("#busyText").textContent = lx(HINTS[++i % HINTS.length])), 1600);
 }
 
 // ---------------------------------------------------------------- dados
@@ -51,7 +65,7 @@ function render() {
   const n = active().filter((f) => f.sev !== "info").length; $("#nRes").textContent = n || "";
   const na = S.st ? S.st.alerts.filter((a) => Date.now() - Date.parse(a.at) < 7 * 86400000 && a.sev !== "low").length : 0; $("#nAl").textContent = na || "";
   if (!S.st) { $("#content").innerHTML = `<div class="loading"><span class="spin"></span></div>`; return; }
-  $("#content").innerHTML = { home, results, watch, tools, history }[S.tab]();
+  $("#content").innerHTML = lx({ home, results, watch, tools, history }[S.tab]());
   bind();
 }
 

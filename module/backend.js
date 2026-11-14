@@ -6,8 +6,12 @@ const path = require("path");
 const https = require("https");
 const crypto = require("crypto");
 const { execFile } = require("child_process");
-const { analyze, score } = require("./analyze");
-const fixes = require("./fixes");
+// Linux: coleta, análise, correções e antivírus próprios (linux.js); a nota e a tela são as mesmas
+const IS_WIN = process.platform === "win32";
+const LX = IS_WIN ? null : require("./linux");
+const { score } = require("./analyze");
+const analyze = LX ? LX.analyze : require("./analyze").analyze;
+const fixes = LX || require("./fixes");
 
 const WATCH_MS = 15 * 60000;
 exports.activate = (ctx) => {
@@ -32,6 +36,7 @@ exports.activate = (ctx) => {
   }
   // coleta: comum, rápida (Vigia) ou completa como administrador (um pedido do Windows)
   async function collect({ admin = false, light = false } = {}) {
+    if (LX) return LX.collect({ admin, light });
     const out = path.join(os.tmpdir(), `piphin-escudo-${crypto.randomBytes(5).toString("hex")}.json`);
     try {
       if (admin) {
@@ -109,10 +114,10 @@ exports.activate = (ctx) => {
     const names = { quick: "verificação rápida", full: "verificação completa", update: "atualização do antivírus", file: "verificação do arquivo", files: "verificação dos arquivos" };
     defBusy = names[kind]; ctx.emit("defender", { busy: defBusy });
     try {
-      if (kind === "update") { const r = await fixes.defender(["-SignatureUpdate"], 20 * 60000); return { ok: r.code === 0, text: r.code === 0 ? "Antivírus atualizado" : "Não deu para atualizar (sem internet?)" }; }
+      if (kind === "update") { const r = await fixes.defender(["-SignatureUpdate"], 20 * 60000); return { ok: r.code === 0, text: r.code === 99 ? r.err : r.code === 0 ? "Antivírus atualizado" : "Não deu para atualizar (sem internet?)" }; }
       if (kind === "quick" || kind === "full") {
         const r = await fixes.defender(["-Scan", "-ScanType", kind === "quick" ? "1" : "2"]);
-        const text = r.code === 0 ? "Nenhuma ameaça encontrada" : r.code === 2 ? "Ameaças encontradas: o Defender cuidou delas (veja em Segurança do Windows › Histórico de proteção)" : "A verificação não terminou (código " + r.code + ")";
+        const text = r.code === 99 ? r.err : r.code === 0 ? "Nenhuma ameaça encontrada" : r.code === 2 ? "Ameaças encontradas: o Defender cuidou delas (veja em Segurança do Windows › Histórico de proteção)" : "A verificação não terminou (código " + r.code + ")";
         ctx.host.notify("Piphin Escudo · " + names[kind], text).catch(() => {});
         return { ok: r.code === 0 || r.code === 2, threat: r.code === 2, text };
       }
@@ -126,7 +131,7 @@ exports.activate = (ctx) => {
 
   // ---------------------------------------------------------------- Vigia: compara o que abre sozinho, contas, hosts... a cada 15 min
   // A base é a última verificação; o que aparecer de novo vira alerta (uma vez só) e entra na base.
-  const sig = (raw) => ({
+  const sig = LX ? LX.sig : (raw) => ({
     auto: [...(raw.run || []).map((x) => `run|${x.key}|${x.name}|${x.command}`), ...(raw.startup || []).map((x) => `startup|${x.file}`), ...(raw.tasks || []).map((x) => `task|${x.taskPath}${x.name}|${x.command}`)],
     services: (raw.services || []).map((x) => `${x.name}|${x.path}`), admins: (raw.admins || []).map((x) => x.name), users: (raw.users || []).filter((u) => u.enabled).map((u) => u.name),
     hosts: raw.hosts || [], proxy: [`${(raw.proxy || {}).enabled}|${(raw.proxy || {}).server}|${(raw.proxy || {}).pac}`], remote: [...((raw.remote || {}).installed || []).map((x) => x.name), ...((raw.remote || {}).services || []).map((x) => x.name)],
@@ -134,7 +139,7 @@ exports.activate = (ctx) => {
   });
   let baseline = readJson("vigia-base.json", null);
   function updateBaseline(raw) { baseline = sig(raw); writeJson("vigia-base.json", baseline); }
-  const WHAT = { auto: "Algo novo vai abrir com o Windows", services: "Serviço novo instalado", admins: "Nova conta de administrador", users: "Nova conta de usuário", hosts: "O arquivo hosts mudou", proxy: "O proxy da internet mudou",
+  const WHAT = LX ? LX.WHAT : { auto: "Algo novo vai abrir com o Windows", services: "Serviço novo instalado", admins: "Nova conta de administrador", users: "Nova conta de usuário", hosts: "O arquivo hosts mudou", proxy: "O proxy da internet mudou",
     remote: "Programa de acesso remoto instalado", wmi: "Gatilho escondido do Windows (WMI) criado", ifeo: "Um programa foi desviado para outro", winlogon: "O login do Windows foi alterado" };
   async function watchTick() {
     if (!prefs.watch || scanning) return;
@@ -185,6 +190,7 @@ exports.activate = (ctx) => {
   ctx.handle("ignore", (id, on) => { if (on) ignored.add(id); else ignored.delete(id); writeJson("ignorados.json", [...ignored]); ctx.emit("state", publicState()); return true; });
   ctx.handle("defender", (kind, arg) => defenderJob(kind, arg));
   ctx.handle("offline-scan", async () => {
+    if (LX) throw new Error("A verificação offline é do Microsoft Defender (Windows). No Linux, use o ClamAV pela verificação completa.");
     const r = await ctx.host.messageBox({ type: "warning", message: "Reiniciar o PC para a verificação offline?", detail: "O Microsoft Defender reinicia o computador e verifica tudo antes do Windows abrir (pega vírus que se escondem com o Windows ligado). Leva uns 15 minutos.\n\nSalve o que estiver aberto antes.", buttons: ["Reiniciar e verificar", "Cancelar"], cancelId: 1 });
     if (r !== 0) return false;
     const q = (s) => String(s).split("'").join("''");
@@ -195,7 +201,7 @@ exports.activate = (ctx) => {
   ctx.handle("prefs", (patch) => { prefs = { ...prefs, ...(patch || {}) }; writeJson("prefs.json", prefs); return prefs; });
   ctx.handle("clear-alerts", () => { alerts = []; writeJson("alertas.json", alerts); ctx.emit("state", publicState()); return true; });
   ctx.handle("show-path", (p) => ctx.host.showItem(p));
-  ctx.handle("open-security", () => execFile("explorer.exe", ["windowsdefender:"], () => {}));
+  ctx.handle("open-security", () => (LX ? execFile("gnome-control-center", ["privacy"], () => {}) : execFile("explorer.exe", ["windowsdefender:"], () => {})));
 
   // ---------------------------------------------------------------- ferramentas para a IA
   const forAi = () => {
