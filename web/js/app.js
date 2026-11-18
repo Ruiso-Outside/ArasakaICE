@@ -8,7 +8,7 @@ const when = (iso) => { const d = new Date(iso), m = Math.round((Date.now() - d)
 const SEV = { critical: ["Grave", "skull"], high: ["Alto", "siren"], medium: ["Médio", "triangle-alert"], low: ["Baixo", "info"], info: ["Info", "info"] };
 const CAT = { invasao: ["Sinais de invasão", "fingerprint", "Coisas que um invasor ou vírus costuma deixar no PC"], brecha: ["Brechas", "lock-open", "Portas por onde alguém poderia entrar"], protecao: ["Proteção do Windows", "shield-check", "As defesas que já vêm no Windows"] };
 const VERDICT = {
-  clean: ["Nenhum sinal de invasão", "Não encontramos nada que indique que o PC foi invadido.", "#22c55e"],
+  clean: ["Nenhum sinal de invasão", "Não encontramos nada que indique que o PC foi invadido.", "#ff0000"],
   check: ["Alguns itens para conferir", "Nada grave, mas há coisas que vale olhar com calma.", "#38bdf8"],
   warn: ["Sinais suspeitos", "Há coisas que costumam aparecer em PCs invadidos. Confira os itens de risco alto.", "#f59e0b"],
   danger: ["Sinais graves de invasão", "Encontramos marcas típicas de invasão. Veja os itens graves e use o Modo emergência.", "#ef4444"],
@@ -81,7 +81,7 @@ function ring(score, color) {
 function home() {
   const L = S.st.last;
   if (!L) return `<div class="wrap"><section class="hero first"><div class="hero-ic"><i class="i i-shield"></i></div><h1>Vamos ver se o seu PC está seguro</h1>
-    <p>O Piphin Escudo procura sinais de invasão (vírus escondidos, programas que abrem sozinhos, contas estranhas, sites desviados) e brechas de segurança. Ele só olha: nada muda sem você mandar.</p>
+    <p>O Arasaka ICE procura sinais de invasão (vírus escondidos, programas que abrem sozinhos, contas estranhas, sites desviados) e brechas de segurança. Ele só olha: nada muda sem você mandar.</p>
     <div class="row center"><button class="btn primary big" data-act="scan"><i class="i i-scan-search"></i>Verificar agora</button><button class="btn big" data-act="scan-full"><i class="i i-shield-check"></i>Verificação completa</button></div>
     <p class="faint">A completa também vê as exceções do antivírus e o registro de segurança (o Windows pede permissão de administrador).</p></section></div>`;
   const v = VERDICT[L.verdict], act = active();
@@ -131,7 +131,7 @@ function watch() {
   const p = S.st.prefs, al = S.st.alerts;
   return `<div class="wrap narrow"><h2>Vigia</h2>
     <div class="p-settings">
-      <div class="set"><div><h4>Vigiar o PC</h4><p>A cada 15 minutos, com o Hub aberto, confere o que abre com o Windows, serviços, contas, administradores, hosts, proxy, programas de acesso remoto e truques conhecidos de invasores.</p></div><label class="switch"><input type="checkbox" id="pWatch" ${p.watch ? "checked" : ""}><span></span></label></div>
+      <div class="set"><div><h4>Vigiar o PC</h4><p>A cada 15 minutos, com a Central aberto, confere o que abre com o Windows, serviços, contas, administradores, hosts, proxy, programas de acesso remoto e truques conhecidos de invasores.</p></div><label class="switch"><input type="checkbox" id="pWatch" ${p.watch ? "checked" : ""}><span></span></label></div>
       <div class="set"><div><h4>Avisar com notificação</h4><p>Uma notificação do Windows quando aparecer algo de risco médio para cima.</p></div><label class="switch"><input type="checkbox" id="pNotify" ${p.notify ? "checked" : ""}><span></span></label></div>
     </div>
     <div class="rhead"><h3>Alertas</h3><div class="grow"></div>${al.length ? `<button class="btn sm ghost" data-act="clear-alerts"><i class="i i-trash-2"></i>Limpar</button>` : ""}</div>

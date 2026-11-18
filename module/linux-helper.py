@@ -76,7 +76,7 @@ def fix(a):
             reload_ssh()
             return {"ok": True, "message": "Desfeito"}
         os.makedirs(os.path.dirname(SSH_DROPIN), exist_ok=True)
-        write(SSH_DROPIN, "# Piphin Escudo: sem login direto como root\nPermitRootLogin no\n")
+        write(SSH_DROPIN, "# Arasaka ICE: sem login direto como root\nPermitRootLogin no\n")
         reload_ssh()
         return {"ok": True, "backup": {}, "message": "O SSH não aceita mais login como root"}
     if f == "autologin_off":

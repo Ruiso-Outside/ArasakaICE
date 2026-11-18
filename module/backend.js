@@ -118,7 +118,7 @@ exports.activate = (ctx) => {
       if (kind === "quick" || kind === "full") {
         const r = await fixes.defender(["-Scan", "-ScanType", kind === "quick" ? "1" : "2"]);
         const text = r.code === 99 ? r.err : r.code === 0 ? "Nenhuma ameaça encontrada" : r.code === 2 ? "Ameaças encontradas: o Defender cuidou delas (veja em Segurança do Windows › Histórico de proteção)" : "A verificação não terminou (código " + r.code + ")";
-        ctx.host.notify("Piphin Escudo · " + names[kind], text).catch(() => {});
+        ctx.host.notify("Arasaka ICE · " + names[kind], text).catch(() => {});
         return { ok: r.code === 0 || r.code === 2, threat: r.code === 2, text };
       }
       const list = kind === "file" ? [arg] : arg;
@@ -157,7 +157,7 @@ exports.activate = (ctx) => {
       const sev = related ? related.sev : ["auto", "services", "admins", "remote"].includes(k) ? "medium" : "low";
       const al = { id: crypto.randomBytes(5).toString("hex"), at: new Date().toISOString(), kind: k, title: WHAT[k], item: label.slice(0, 300), sev, finding: related && related.title };
       alerts.unshift(al);
-      if (prefs.notify && sev !== "low") ctx.host.notify("Piphin Escudo · " + WHAT[k], `${al.item.slice(0, 120)}${related ? "\n" + related.title : ""}\nClique para ver.`).catch(() => {});
+      if (prefs.notify && sev !== "low") ctx.host.notify("Arasaka ICE · " + WHAT[k], `${al.item.slice(0, 120)}${related ? "\n" + related.title : ""}\nClique para ver.`).catch(() => {});
     }
     alerts = alerts.slice(0, 200); writeJson("alertas.json", alerts);
     baseline = now; writeJson("vigia-base.json", baseline);
@@ -214,7 +214,7 @@ exports.activate = (ctx) => {
   };
   ctx.handle("tool:security_status", async () => {
     if (!last || Date.now() - Date.parse(last.at) > 24 * 3600000) await scan("quick");
-    return { ...forAi(), note: "As correções são feitas pela pessoa na tela do Piphin Escudo (com confirmação)." };
+    return { ...forAi(), note: "As correções são feitas pela pessoa na tela do Arasaka ICE (com confirmação)." };
   });
   ctx.handle("tool:run_security_scan", async () => { await scan("quick"); return forAi(); });
 };
