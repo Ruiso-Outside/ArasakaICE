@@ -25,7 +25,7 @@ function run(file, args, { timeout = 60000 } = {}) {
 const gget = async (schema, key) => { const r = await run("gsettings", ["get", schema, key]); return r.code === 0 ? r.out.trim() : null; };
 
 // comandos que vírus usam para baixar e rodar coisas escondido
-const SHADY = /(curl|wget)[^|;&]*\|\s*(ba|z|da)?sh\b|base64\s+(-d|--decode)[^|]*\|\s*(ba|z)?sh|\bnc(at)?\s+(-e|-c)\b|\/dev\/tcp\/|python3?\s+-c\s+['"][^'"]*(socket|exec|base64)|\beval\s+"\$\(|mkfifo\s+\/tmp|\/tmp\/\.|\/dev\/shm\//i;
+const SHADY = /(curl|wget)[^|;&]*\|\s*(ba|z|da)?sh\b|base64\s+(-d|--decode)[^|]*\|\s*(ba|z)?sh|\bnc(at)?\s+(-e|-c)\b|\/dev\/tcp\/|python3?\s+-c\s+['"][^'"]*(socket|exec|base64)|\beval\s+["']?\$\(\s*(curl|wget|base64|echo\s+[A-Za-z0-9+/=]{40})|mkfifo\s+\/tmp|\/tmp\/\.|\/dev\/shm\//i;
 const TMP = /^\/(tmp|dev\/shm|var\/tmp)\//;
 const RISKY_PORTS = { 21: "FTP", 22: "SSH", 23: "Telnet", 139: "Compartilhamento (Samba)", 445: "Compartilhamento (Samba)", 3389: "Área de Trabalho Remota (RDP)", 5900: "VNC", 5901: "VNC",
   5938: "TeamViewer", 3306: "MySQL/MariaDB", 5432: "PostgreSQL", 6379: "Redis", 27017: "MongoDB", 2375: "Docker sem senha", 8080: "Servidor web de teste", 11211: "Memcached" };
@@ -132,7 +132,11 @@ function analyze(d) {
   if (badCron.length) add({ id: "cron", cat: "invasao", sev: "high", title: "Tarefa agendada (cron) com comando suspeito", text: "Uma tarefa agendada da sua conta baixa ou roda algo escondido. Confira com \"crontab -e\" no terminal e apague a linha se não foi você.", details: badCron.slice(0, 5) });
   for (const u of d.userUnits || []) if (SHADY.test(u.exec) || TMP.test(u.exec.split(/\s+/)[0] || "")) add({ id: "unit:" + u.name, cat: "invasao", sev: "high", title: `Serviço da sua conta "${u.name}" roda algo suspeito`, text: "Um serviço do systemd da sua conta executa um comando que baixa ou roda coisas de pastas temporárias.", details: [u.exec.slice(0, 300), u.file] });
   for (const s of d.shellrc || []) if (s.shady.length) add({ id: "rc:" + s.file, cat: "invasao", sev: "high", title: `O arquivo ${path.basename(s.file)} roda um comando suspeito`, text: "Toda vez que um terminal abre, esse comando roda. Linhas assim (baixar e executar, conexão reversa) são típicas de invasão.", details: s.shady });
-  for (const p of d.fromTmp || []) add({ id: "tmp:" + p.exe, cat: "invasao", sev: "high", title: `Programa rodando de uma pasta temporária: ${p.name}`, text: "Programas normais não rodam de /tmp ou /dev/shm. Vírus costumam se esconder aí.", details: [`${p.exe} (processo ${p.pid})`] });
+  // um aviso por programa (apps Electron/Chromium abrem dezenas de processos do mesmo executável)
+  const tmpByExe = new Map();
+  for (const p of d.fromTmp || []) { const g = tmpByExe.get(p.exe) || { ...p, pids: [] }; g.pids.push(p.pid); tmpByExe.set(p.exe, g); }
+  for (const p of tmpByExe.values()) add({ id: "tmp:" + p.exe, cat: "invasao", sev: "high", title: `Programa rodando de uma pasta temporária: ${p.name}`, text: "Programas normais não rodam de /tmp ou /dev/shm. Vírus costumam se esconder aí.",
+    details: [p.pids.length > 1 ? `${p.exe} (${p.pids.length} processos: ${p.pids.slice(0, 5).join(", ")}${p.pids.length > 5 ? "..." : ""})` : `${p.exe} (processo ${p.pid})`] });
   const hostBad = (d.hosts || []).filter((l) => BIG_SITES.test(l) && !/^0\.0\.0\.0\s/.test(l));
   if (hostBad.length) add({ id: "hosts", cat: "invasao", sev: "high", title: "O arquivo hosts desvia sites conhecidos", text: "O /etc/hosts manda nomes de sites grandes (banco, Google, Steam...) para outro endereço. Isso pode levar a páginas falsas.", details: hostBad.slice(0, 8) });
   if ((d.sshKeys || []).length) add({ id: "sshkeys", cat: "invasao", sev: d.ssh && d.ssh.listening ? "medium" : "low", title: `${d.sshKeys.length} ${d.sshKeys.length === 1 ? "chave pode" : "chaves podem"} entrar na sua conta por SSH`, text: "Quem tem essas chaves entra no PC sem senha pelo SSH. Se você não reconhece alguma, apague a linha em ~/.ssh/authorized_keys.", details: d.sshKeys.slice(0, 8) });
