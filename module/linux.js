@@ -19,7 +19,7 @@ const exists = (f) => { try { fs.accessSync(f); return true; } catch { return fa
 const ls = (d) => { try { return fs.readdirSync(d); } catch { return []; } };
 const has = (cmd) => process.env.PATH.split(":").some((d) => exists(path.join(d, cmd)));
 function run(file, args, { timeout = 60000 } = {}) {
-  return new Promise((resolve) => execFile(file, args, { timeout, maxBuffer: 32 * 1024 * 1024, env: { ...process.env, LC_ALL: "C" } }, (err, out, e) =>
+  return new Promise((resolve) => execFile(file, args, { timeout, maxBuffer: 32 * 1024 * 1024, env: { ...process.env, LC_ALL: "C.UTF-8" } }, (err, out, e) =>
     resolve({ code: err ? (typeof err.code === "number" ? err.code : 1) : 0, out: String(out || ""), err: String(e || "") })));
 }
 const gget = async (schema, key) => { const r = await run("gsettings", ["get", schema, key]); return r.code === 0 ? r.out.trim() : null; };
