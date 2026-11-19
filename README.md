@@ -1,6 +1,8 @@
-# Piphin Escudo
+# Arasaka ICE
 
-Verifica se o PC tem **sinais de invasão** ou **brechas de segurança**, explica cada coisa em palavras simples e corrige com um clique (com Desfazer). Módulo do [Piphin Hub](https://github.com/Ruiso-Outside/Piphin-Hub) (cerca de 120 KB).
+> Antes chamado **Piphin Escudo**. Os arquivos, pastas e dados continuam com o nome antigo.
+
+Verifica se o PC tem **sinais de invasão** ou **brechas de segurança**, explica cada coisa em palavras simples e corrige com um clique (com Desfazer). Módulo do [Arasaka Central](https://github.com/Ruiso-Outside/ArasakaCentral) (cerca de 120 KB).
 
 A verificação **só olha**: nada muda no PC sem você mandar.
 
@@ -63,7 +65,7 @@ Resultado: **nota de 0 a 100**, um veredito de invasão e os **pontos fortes** d
 - **Gerador de senhas**: aleatórias ou fáceis de lembrar, com palavras em português.
 - **Antivírus**: verificação rápida, completa e **offline** (antes do Windows abrir), mais atualizar e verificar arquivos suspeitos.
 - **Modo emergência**: o passo a passo para quem acha que foi invadido ou caiu num golpe.
-- **IA**: com o Piphin LLM, a IA lê a última verificação e explica os problemas.
+- **IA**: com o Arasaka Mikoshi, a IA lê a última verificação e explica os problemas.
 
 ## Estrutura
 
